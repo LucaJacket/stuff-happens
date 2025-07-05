@@ -15,8 +15,8 @@ function Countdown({ action, timeout }) {
   }, [time]);
 
   return (
-    <Row className="justify-content-center align-items-center">
-      <Col md={6}>
+    <Row className="justify-content-center align-items-center gap-3">
+      <Col>
         <ProgressBar
           max={timeout}
           now={time}
@@ -24,7 +24,7 @@ function Countdown({ action, timeout }) {
           style={{ height: "3rem" }}
         />
       </Col>
-      <Col md="auto">
+      <Col xs="auto">
         <Button
           onClick={() => setTime(0)}
           variant={darkMode ? "outline-light" : "outline-dark"}

@@ -37,7 +37,7 @@ function Profile({ handleLogout, setMessage, user }) {
           </div>
         </Col>
       </Row>
-      <Row>
+      <Row className="mb-5">
         <History games={games} />
       </Row>
     </>

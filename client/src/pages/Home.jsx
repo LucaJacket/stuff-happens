@@ -46,8 +46,8 @@ function Home({ loggedIn, setMessage }) {
         </Col>
       </Row>
 
-      <Row id="rules" className="justify-content-center">
-        <Col md={8} className="my-5">
+      <Row id="rules" className="justify-content-center my-5">
+        <Col md={8}>
           <h2 className="display-6 text-center mb-5">Regole:</h2>
           <ul className="list-unstyled">
             <li>
