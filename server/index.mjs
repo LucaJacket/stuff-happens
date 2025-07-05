@@ -219,8 +219,8 @@ app.post(
   (req, res) => {
     try {
       if (req.game.outcome !== NOT_ENDED) return res.status(409).end();
-      const played = req.game.rounds.map((round) => round.card);
-      const card = listCards().find((card) => !played.includes(card));
+      const played = req.game.rounds.map((round) => round.card.id);
+      const card = listCards().find((card) => !played.includes(card.id));
       if (!card) return res.status(404).end();
       const roundId = addRound(
         req.game.id,

@@ -1,9 +1,7 @@
 import { Button, Row, Col } from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { useTheme } from "../contexts/ThemeContext";
-import { addGame, listGames } from "../api/index.mjs";
-
-const NOT_ENDED = 0;
+import { addGame } from "../api/index.mjs";
 
 function Home({ loggedIn, setMessage }) {
   const { darkMode } = useTheme();
@@ -15,55 +13,6 @@ function Home({ loggedIn, setMessage }) {
       .then((id) => navigate(`/games/${id}`))
       .catch((err) => setMessage({ title: "Errore", body: err.message }));
   };
-
-  const handleResume = () => {
-    listGames()
-      .then((games) => {
-        const id = games.find((game) => game.outcome === NOT_ENDED).id;
-        navigate(`/games/${id}`);
-      })
-      .catch((err) => setMessage({ title: "Errore", body: err.message }));
-  };
-
-  const options = loggedIn
-    ? [
-        <Button
-          onClick={handleNewGame}
-          variant={darkMode ? "outline-light" : "outline-dark"}
-        >
-          Nuova partita
-        </Button>,
-        <Button
-          onClick={handleResume}
-          variant={darkMode ? "outline-light" : "outline-dark"}
-        >
-          Riprendi
-        </Button>,
-        <a
-          href="#rules"
-          className={
-            darkMode ? "btn btn-outline-light" : "btn btn-outline-dark"
-          }
-        >
-          Regole
-        </a>,
-      ]
-    : [
-        <Button
-          onClick={handleNewGame}
-          variant={darkMode ? "outline-light" : "outline-dark"}
-        >
-          Nuova partita
-        </Button>,
-        <a
-          href="#rules"
-          className={
-            darkMode ? "btn btn-outline-light" : "btn btn-outline-dark"
-          }
-        >
-          Regole
-        </a>,
-      ];
 
   return (
     <>
@@ -79,7 +28,20 @@ function Home({ loggedIn, setMessage }) {
             nell'universo... tutto in meno di dieci minuti.
           </p>
           <div className="d-flex flex-column align-items-center gap-3 mt-4">
-            {...options}
+            <Button
+              onClick={handleNewGame}
+              variant={darkMode ? "outline-light" : "outline-dark"}
+            >
+              {loggedIn ? "Nuova partita" : "Partita demo"}
+            </Button>
+            <a
+              href="#rules"
+              className={
+                darkMode ? "btn btn-outline-light" : "btn btn-outline-dark"
+              }
+            >
+              Regole
+            </a>
           </div>
         </Col>
       </Row>

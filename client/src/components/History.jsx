@@ -4,6 +4,7 @@ import localizedFormat from "dayjs/plugin/localizedFormat";
 import { useState } from "react";
 import { Button, Card, Col, Collapse, Row } from "react-bootstrap";
 import { MisfortuneCard } from "./GameComponents";
+import { useNavigate } from "react-router";
 
 dayjs.extend(localizedFormat);
 dayjs.locale("it");
@@ -18,6 +19,7 @@ const ROUND_OUTCOME = {
   1: "Perso",
   2: "Vinto",
 };
+const NOT_ENDED = 0;
 const WON = 2;
 
 function History({ games }) {
@@ -36,9 +38,11 @@ function History({ games }) {
 function HistoryRow({ game }) {
   const [expanded, setExpanded] = useState(false);
 
+  const navigate = useNavigate();
+
   const played = game.rounds.filter((round) => round.number !== 0);
   const initial = game.rounds.filter((round) => round.number === 0);
-  const won = played.filter((round) => round.outcome === WON);
+  const won = game.rounds.filter((round) => round.outcome === WON);
 
   return (
     <>
@@ -62,16 +66,26 @@ function HistoryRow({ game }) {
               <Card.Text>{GAME_OUTCOME[game.outcome]}</Card.Text>
             </Col>
             <Col md={1}>
-              <Button
-                onClick={() => setExpanded((prev) => !prev)}
-                variant="outline-light"
-              >
-                {expanded ? (
-                  <i className="bi bi-zoom-out" />
-                ) : (
-                  <i className="bi bi-zoom-in" />
+              <div className="d-flex flex-row gap-3 justify-content-end">
+                {game.outcome === NOT_ENDED && (
+                  <Button
+                    onClick={() => navigate(`/games/${game.id}`)}
+                    variant="outline-light"
+                  >
+                    <i className="bi bi-play" />
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  onClick={() => setExpanded((prev) => !prev)}
+                  variant="outline-light"
+                >
+                  {expanded ? (
+                    <i className="bi bi-zoom-out" />
+                  ) : (
+                    <i className="bi bi-zoom-in" />
+                  )}
+                </Button>
+              </div>
             </Col>
           </Row>
         </Card.Body>
