@@ -20,23 +20,24 @@ import {
 } from "./database.mjs";
 
 const GAME = {
-  win: 3,
+  win: 6,
   lose: 3,
 };
 const DEMO_GAME = {
-  win: 1,
+  win: 4,
   lose: 1,
 };
 const INITIAL_CARDS = 3;
 const NOT_ENDED = 0;
 const LOST = 1;
 const WON = 2;
+const TIMEOUT = 30;
 
 dotenv.config();
 
-const SECRET = process.env.SECRET;
-const HOST = process.env.HOST;
-const PORT = process.env.PORT;
+const SECRET = process.env.SECRET || "super_secret_token";
+const HOST = process.env.HOST || "localhost";
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 
@@ -84,6 +85,11 @@ app.use(
     secret: SECRET,
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
   })
 );
 
@@ -103,23 +109,38 @@ const isValid = (req, res, next) => {
   return next();
 };
 
+const checkGame = (req, res, next) => {
+  try {
+    req.game = getGame(req.params.id);
+    if (!req.game) return res.status(404).end();
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    if (req.game.userId !== userId) return res.status(403).end();
+    return next();
+  } catch (err) {
+    console.log(err);
+    return res.status(500).end();
+  }
+};
+
 /** ROUTES **/
+
+const sanitize = (game) => {
+  const { id, createdAt, outcome, rounds } = game;
+  const sanitizedRounds = rounds.map(({ number, outcome, card }) => {
+    const sanitizedCard = {
+      name: card.name,
+      image: card.image,
+      misfortune: outcome === WON ? card.misfortune : undefined,
+    };
+    return { number, outcome, card: sanitizedCard };
+  });
+  return { id, createdAt, outcome, rounds: sanitizedRounds };
+};
 
 app.get("/api/games", isLoggedIn, (req, res) => {
   try {
     const games = listGames(req.user.id);
-    games.forEach((game) => {
-      delete game.id;
-      delete game.userId;
-      game.rounds.forEach((round) => {
-        delete round.id;
-        delete round.gameId;
-        delete round.createdAt;
-        delete round.card.id;
-        if (round.outcome !== WON) delete round.card.misfortune;
-      });
-    });
-    return res.status(200).json(games);
+    return res.status(200).json(games.map(sanitize));
   } catch (err) {
     console.log(err);
     return res.status(500).end();
@@ -134,62 +155,57 @@ app.post("/api/games", (req, res) => {
       .slice(0, INITIAL_CARDS)
       .forEach((card) => addRound(gameId, dayjs(), 0, WON, card.id));
     return res.status(201).json(gameId);
-  } catch {
+  } catch (err) {
+    console.log(err);
     return res.status(500).end();
   }
 });
 
-app.get("/api/games/:id", param("id").isInt().toInt(), isValid, (req, res) => {
-  try {
-    const game = getGame(req.params.id);
-    if (!game) return res.status(404).end();
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    if (game.userId !== userId) return res.status(403).end();
-    delete game.id;
-    delete game.userId;
-    game.rounds.forEach((round) => {
-      delete round.id;
-      delete round.gameId;
-      delete round.createdAt;
-      delete round.card.id;
-      if (round.outcome !== WON) delete round.card.misfortune;
-    });
-    return res.status(200).json(game);
-  } catch {
-    return res.status(500).end();
-  }
-});
+app.get(
+  "/api/games/:id",
+  param("id").isInt().toInt(),
+  isValid,
+  checkGame,
+  (req, res) => res.status(200).json(sanitize(req.game))
+);
 
 app.put(
   "/api/games/:id",
   param("id").isInt().toInt(),
   body("index").isInt().toInt(),
   isValid,
+  checkGame,
   (req, res) => {
     try {
-      const game = getGame(req.params.id);
-      if (!game) return res.status(404).end();
-      const userId = req.isAuthenticated() ? req.user.id : null;
-      if (game.userId !== userId) return res.status(403).end();
-      const current = game.rounds.find((round) => round.outcome === NOT_ENDED);
-      if (!current) return res.status(409).end();
-      const hand = game.rounds
-        .filter((round) => round.outcome !== LOST)
-        .sort((a, b) => a.card.misfortune - b.card.misfortune);
-      const outcome = hand.indexOf(current) === req.body.index ? WON : LOST;
+      const now = dayjs();
+      if (req.game.outcome !== NOT_ENDED) return res.status(409).end();
+      const current = req.game.rounds.find(
+        (round) => round.outcome === NOT_ENDED
+      );
+      if (!current) return res.status(404).end();
+      let outcome;
+      if (now.diff(current.createdAt, "second") > TIMEOUT) {
+        outcome = LOST;
+      } else {
+        const hand = req.game.rounds
+          .filter((round) => round.outcome !== LOST)
+          .sort((a, b) => a.card.misfortune - b.card.misfortune);
+        outcome = hand.indexOf(current) === req.body.index ? WON : LOST;
+      }
       updateRound(current.id, outcome);
-      const config = userId ? GAME : DEMO_GAME;
+      const config = req.game.userId ? GAME : DEMO_GAME;
       if (outcome === WON) {
         const won =
-          game.rounds.filter((round) => round.outcome === WON).length + 1;
-        if (won === config.win) updateGame(game.id, WON);
+          req.game.rounds.filter((round) => round.outcome === WON).length + 1;
+        if (won === config.win) updateGame(req.game.id, WON);
       } else {
         const lost =
-          game.rounds.filter((round) => round.outcome === LOST).length + 1;
-        if (lost === config.lose) updateGame(game.id, LOST);
+          req.game.rounds.filter((round) => round.outcome === LOST).length + 1;
+        if (lost === config.lose) updateGame(req.game.id, LOST);
       }
-      return res.status(200).end();
-    } catch {
+      return res.status(200).json(outcome);
+    } catch (err) {
+      console.log(err);
       return res.status(500).end();
     }
   }
@@ -199,32 +215,36 @@ app.post(
   "/api/games/:id/rounds",
   param("id").isInt().toInt(),
   isValid,
+  checkGame,
   (req, res) => {
     try {
-      const game = getGame(req.params.id);
-      if (!game) return res.status(404).end();
-      const userId = req.isAuthenticated() ? req.user.id : null;
-      if (game.userId !== userId) return res.status(403).end();
-      const card = listCards()[0];
-      const roundId = addRound(game.id, dayjs(), 0, NOT_ENDED, card.id);
+      if (req.game.outcome !== NOT_ENDED) return res.status(409).end();
+      const played = req.game.rounds.map((round) => round.card);
+      const card = listCards().find((card) => !played.includes(card));
+      if (!card) return res.status(404).end();
+      const roundId = addRound(
+        req.game.id,
+        dayjs(),
+        played.length - INITIAL_CARDS + 1,
+        NOT_ENDED,
+        card.id
+      );
       return res.status(201).json(roundId);
-    } catch {
+    } catch (err) {
+      console.log(err);
       return res.status(500).end();
     }
   }
 );
 
 app.post("/api/sessions", passport.authenticate("local"), (req, res) => {
-  delete req.user.id;
-  return res.status(201).json(req.user);
+  const user = { username: req.user.username, email: req.user.email };
+  return res.status(201).json(user);
 });
 
-app.get("/api/sessions/current", (req, res) => {
-  if (req.isAuthenticated()) {
-    delete req.user.id;
-    return res.status(200).json(req.user);
-  }
-  return res.status(204).end();
+app.get("/api/sessions/current", isLoggedIn, (req, res) => {
+  const user = { username: req.user.username, email: req.user.email };
+  return res.status(200).json(user);
 });
 
 app.delete("/api/sessions/current", (req, res) => {

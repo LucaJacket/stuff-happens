@@ -1,11 +1,5 @@
 import dayjs from "dayjs";
 
-import "dayjs/locale/it";
-import localizedFormat from "dayjs/plugin/localizedFormat";
-
-dayjs.extend(localizedFormat);
-dayjs.locale("it");
-
 class Card {
   constructor(name, image, misfortune) {
     this.name = name;
@@ -15,7 +9,8 @@ class Card {
 }
 
 class Game {
-  constructor(createdAt, outcome, rounds) {
+  constructor(id, createdAt, outcome, rounds) {
+    this.id = id;
     this.createdAt = dayjs(createdAt);
     this.outcome = outcome;
     this.rounds = rounds;

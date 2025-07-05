@@ -1,10 +1,7 @@
-import dotenv from "dotenv";
-import { Card, Game, Round, User } from "../models/models.mjs";
+import { Card, Game, Round, User } from "./models.mjs";
 
-dotenv.config();
-
-const HOST = process.env.HOST || "localhost";
-const PORT = process.env.PORT || 3000;
+const HOST = import.meta.env.VITE_HOST || "localhost";
+const PORT = import.meta.env.VITE_PORT || 3000;
 
 const SERVER_URL = `http://${HOST}:${PORT}`;
 
@@ -20,12 +17,12 @@ export const listGames = async () => {
           const rounds = game.rounds.map((round) => {
             const card = new Card(
               round.card.name,
-              round.card.image,
+              `${SERVER_URL}/${round.card.image}`,
               round.card.misfortune
             );
             return new Round(round.number, round.outcome, card);
           });
-          return new Game(game.createdAt, game.outcome, rounds);
+          return new Game(game.id, game.createdAt, game.outcome, rounds);
         });
       }
       case 401:
@@ -66,12 +63,12 @@ export const getGame = async (id) => {
         const rounds = gameJson.rounds.map((round) => {
           const card = new Card(
             round.card.name,
-            round.card.image,
+            `${SERVER_URL}/${round.card.image}`,
             round.card.misfortune
           );
           return new Round(round.number, round.outcome, card);
         });
-        return new Game(gameJson.createdAt, gameJson.outcome, rounds);
+        return new Game(gameJson.id, gameJson.createdAt, gameJson.outcome, rounds);
       case 401:
         throw new Error("Utente non autenticato.");
       case 403:
@@ -95,8 +92,8 @@ export const updateGame = async (id, index) => {
       body: JSON.stringify({ index })
     });
     switch (res.status) {
-      case 204:
-        return null;
+      case 200:
+        return await res.json();
       case 401:
         throw new Error("Utente non autenticato.");
       case 403:
@@ -127,7 +124,7 @@ export const addRound = async (id) => {
       case 403:
         throw new Error("Permessi insufficienti.");
       case 404:
-        throw new Error("Partita non trovata.");
+        throw new Error("Partita o carta non trovate.");
       case 409:
         throw new Error("Partita già terminata.");
       default:
@@ -148,9 +145,10 @@ export const logIn = async (credentials) => {
     });
     switch (res.status) {
       case 201:
-        return null;
+        const userJson = await res.json();
+        return new User(userJson.username, userJson.email);
       case 401:
-        throw new Error("Email o password non corretti.");
+        return null;
       default:
         throw new Error("Impossibile effettuare il login.");
     }
@@ -169,7 +167,7 @@ export const getUserInfo = async () => {
         const userJson = await res.json();
         return new User(userJson.username, userJson.email);
       case 401:
-        return null;
+        throw new Error("Utente non autenticato.");
       default:
         throw new Error("Impossibile recuperare l'utente.");
     }
