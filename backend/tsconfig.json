@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["es2015"],
+    "target": "es2015",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "./build",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "paths": {
+      "@controllers/*": ["src/controllers/*"],
+      "@entities/*": ["src/entities/*"],
+      "@routes/*": ["src/routes/*"],
+      "@services/*": ["src/services/*"],
+      "@utils/*": ["src/utils/*"]
+    }
+  }
+}

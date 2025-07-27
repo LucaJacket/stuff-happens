@@ -1,0 +1,42 @@
+{
+  "name": "stuff-happens-backend",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "dev": "tsx --env-file-if-exists=.env --watch src/index.ts",
+    "format": "npx prettier . --write",
+    "format:check": "npx prettier . --check",
+    "typeorm": "typeorm-ts-node-commonjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "express": "^4.21.2",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.2.1",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.14.1",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "0.3.25"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.13.10",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.5",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.37.0"
+  }
+}
